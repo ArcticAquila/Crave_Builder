@@ -14,9 +14,6 @@ on:
       REMOVALS:
         description: "Folders to be removed before syncing:"
         required: false
-      JSON_AS_VAR:
-        description: "All variable"
-        required: false
       BUILD_COMMAND:
         description: 'Command to be used for compiling:'
         required: true
@@ -60,7 +57,7 @@ jobs:
         else
           echo "We are already running in devspace... Skipping Symlinks"
         fi
-        case "${{ github.event.inputs.BASE_PROJECT }}" in3
+        case "${{ github.event.inputs.BASE_PROJECT }}" in
         "LineageOS 21.0")
           export PROJECTFOLDER="/crave-devspaces/Lineage21"
         ;;
