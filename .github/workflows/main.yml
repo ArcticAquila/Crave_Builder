@@ -151,22 +151,23 @@ jobs:
       run: |
         cd $PROJECTFOLDER
 
-        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; then
-          crave run --no-patch --clean "rm -rf .repo/local_manifests/ ${{ github.event.inputs.REMOVALS }} && \
+        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
+        then
+          crave run --no-patch --clean "rm -rf .repo/local_manifests/ ${{ github.event.inputs.REMOVALS }}
         else
-        crave run --no-patch "rm -rf .repo/local_manifests/ ${{ github.event.inputs.REMOVALS }} && \
+          crave run --no-patch "rm -rf .repo/local_manifests/ ${{ github.event.inputs.REMOVALS }} 
         fi
 
         # Sync the repositories
-        /opt/crave/resync.sh  && \
+        /opt/crave/resync.sh
 
         git clone https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr device/mediatek/sepolicy_vndr
         git clone https://github.com/LineageOS/android_hardware_mediatek hardware/mediatek
 
         # Set up build environment
-        export BUILD_USERNAME=${{ github.actor }} ; \
-        export BUILD_HOSTNAME=crave ; \
-        source build/envsetup.sh && \
+        export BUILD_USERNAME=${{ github.actor }}
+        export BUILD_HOSTNAME=crave
+        source build/envsetup.sh 
 
         # Build the ROM
         
@@ -176,8 +177,8 @@ jobs:
         cd system/core
         git apply ../../device/samsung/a03s/tools/fatal_to_recovery.patch
         croot
-        lunch lineage_a03s-eng && \
-        make installclean && \
+        lunch lineage_a03s-eng
+        make installclean
         ${{ github.event.inputs.BUILD_COMMAND }}"
 
     ## DISABLED
