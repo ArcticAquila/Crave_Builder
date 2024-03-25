@@ -17,14 +17,6 @@ on:
       JSON_AS_VAR:
         description: "All variable"
         required: false
-      DEVICE_NAME:
-        description: "Device's codename:"
-        required: true
-        default: "a03s"
-      PRODUCT_NAME:
-        description: "Product to build:"
-        required: true
-        default: "lineage_a03s"
       BUILD_COMMAND:
         description: 'Command to be used for compiling:'
         required: true
@@ -46,9 +38,6 @@ on:
         options: 
         - 'yes'
         - 'no'
-
-env:
-  JSON_INPUT: ${{ github.event.inputs.JSON_AS_VAR }}
 
 jobs:
   test:
@@ -93,8 +82,8 @@ jobs:
     # Set-up a spearate directory for the device.
     - name: Set-up workspace environment
       run: |
-        mkdir ${{ github.event.inputs.DEVICE_NAME }}
-        cd ${{ github.event.inputs.DEVICE_NAME }}
+        mkdir a03s
+        cd a03s
       continue-on-error: true
 
     # Download and configure 'repo'.
@@ -136,18 +125,8 @@ jobs:
           ;;
         esac
 
-    - name: set inputs as variables
-      run: |
-        echo -e "DEVICE_TREE_URL=$(echo $JSON_INPUT | jq ".DEVICE_TREE_URL")" >> $GITHUB_ENV
-        echo -e "DEVICE_TREE_BRANCH=$(echo $JSON_INPUT | jq ".DEVICE_TREE_BRANCH")" >> $GITHUB_ENV
-        echo -e "DEVICE_TREE_LOCATION=$(echo $JSON_INPUT | jq ".DEVICE_TREE_LOCATION")" >> $GITHUB_ENV
-        echo -e "VENDOR_TREE_URL=$(echo $JSON_INPUT | jq ".VENDOR_TREE_URL")" >> $GITHUB_ENV
-        echo -e "VENDOR_TREE_BRANCH=$(echo $JSON_INPUT | jq ".VENDOR_TREE_BRANCH")" >> $GITHUB_ENV
-        echo -e "VENDOR_TREE_LOCATION=$(echo $JSON_INPUT | jq ".DEVICE_TRRE_LOCATION")" >> $GITHUB_ENV
-      
     # Setup SSH Key
     - name: Setup SSH Keys
-      if: ${{ startsWith(env.DEVICE_TREE_URL, 'git@github.com') }}
       uses: webfactory/ssh-agent@v0.5.4
       with:
           ssh-private-key: |
@@ -157,13 +136,18 @@ jobs:
     - name: Clone device tree
       run: |
         cd $PROJECTFOLDER
-        git clone ${{ env.DEVICE_TREE_URL }} -b ${{ env.DEVICE_TREE_BRANCH }} ./${{ env.DEVICE_TREE_LOCATION }}
+        git clone git@github.com:ArcticAquila/android_device_samsung_a03s.git -b main ./device/samsung/a03s
 
     # Clone specified vendor tree
     - name: Clone vendor tree
       run: |
         cd $PROJECTFOLDER
-        git clone ${{ env.VENDOR_TREE_URL }} -b ${{ env.VENDOR_TREE_BRANCH }} ./${{ env.VENDOR_TREE_LOCATION }}
+        git clone git@github.com:ArcticAquila/android_device_samsung_a03s.git" -b main ./vendor/samsung/a03s
+
+    - name: Change to Lineage
+      run: | 
+        cd $PROJECTFOLDER/device/samsung/a03s
+        bash tools/change-version.sh lineage
 
     # Create a 'crave' job for building.
     - name: Start compilation through 'crave'
@@ -179,15 +163,40 @@ jobs:
         # Sync the repositories
         /opt/crave/resync.sh  && \
 
+        git clone https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr device/mediatek/sepolicy_vndr
+        git clone https://github.com/LineageOS/android_hardware_mediatek hardware/mediatek
+
         # Set up build environment
         export BUILD_USERNAME=${{ github.actor }} ; \
         export BUILD_HOSTNAME=crave ; \
         source build/envsetup.sh && \
 
         # Build the ROM
-        lunch ${{ github.event.inputs.PRODUCT_NAME }}-${{ github.event.inputs.BUILD_TYPE }} && \
+        
+        cd device/samsung/a03s
+        bash tools/change-version.sh lineage
+        croot
+        cd system/core
+        git apply ../../device/samsung/a03s/tools/fatal_to_recovery.patch
+        croot
+        lunch lineage_a03s-eng && \
         make installclean && \
         ${{ github.event.inputs.BUILD_COMMAND }}"
+
+    ## DISABLED
+    #- name: Extract sign key
+     # env:
+     #   CERTIFICATE_BASE64: ${{ secrets.FILE_BASE64 }}
+      #run: |
+      #  mkdir $PROJECTFOLDER/device/samsung/a03s/tmp
+      #  cd $PROJECTFOLDER/device/samsung/a03s/tmp
+      #  echo $CERTIFICATE_BASE64 | base64 --decode > android-certs.zip.gpg
+      #  gpg --quiet --batch --yes --decrypt --passphrase="$GPG_PASSWORD" --output android-certs.zip android-certs.zip.gpg
+      #  unzip -P $ZIP_PASSWORD android-certs.zip
+
+    #- name: Sign build
+     # run: |
+      #  cd $PROJECTFOLDER
 
 
     # Only reach this wheter the user killed the workflow.
