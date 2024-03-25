@@ -139,7 +139,7 @@ jobs:
     - name: Clone vendor tree
       run: |
         cd $PROJECTFOLDER
-        git clone git@github.com:ArcticAquila/android_device_samsung_a03s.git" -b main ./vendor/samsung/a03s
+        git clone git@github.com:ArcticAquila/android_device_samsung_a03s.git -b main ./vendor/samsung/a03s
 
     - name: Change to Lineage
       run: | 
