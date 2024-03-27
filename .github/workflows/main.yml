@@ -9,8 +9,8 @@ on:
         default: 'LineageOS 20.0'
         type: choice
         options:
-          - 'LineageOS 20.0'
-          - 'LineageOS 21.0'
+        - 'LineageOS 21.0'
+        - 'LineageOS 20.0'
       CLEAN_ARGS:
         description: "Enable clean jobs"
         required: true
@@ -216,7 +216,7 @@ jobs:
         source build/envsetup.sh && \
 
         cd device/samsung/a03s && \
-        bash tools/change-version.sh lineage && \
+        bash tools/extract-files.sh pro/ && \
         croot && \
         cd system/core && \
         git apply ../../device/samsung/a03s/tools/fatal_to_recovery.patch && \
@@ -239,6 +239,7 @@ jobs:
         cd $PROJECTFOLDER
         crave ssh -- sleep 1
         crave pull out/target/product/*/*.zip
+        crave pull out/dist/*.zip
 
     ## Directly upload to releases.
     #- name: Upload to repository's releases page
