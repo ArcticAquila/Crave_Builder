@@ -11,6 +11,10 @@ on:
         options:
           - 'LineageOS 20.0'
           - 'LineageOS 21.0'
+      CLEAN_ARGS:
+        description: "Enable clean jobs"
+        required: true
+        type: boolean
       REMOVALS:
         description: "Folders to be removed before syncing:"
         required: false
@@ -180,6 +184,7 @@ jobs:
         mv pro.tar.gz device/samsung/a03s/
 
     - name: Cleaning environment
+      if: ${{ github.event.inputs.CLEAN_ARGS == 'true' }}
       run: |
         cd $PROJECTFOLDER
         if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
@@ -188,6 +193,7 @@ jobs:
           else
             crave run --no-patch "${{ github.event.inputs.REMOVALS }}"
         fi
+
     - name: Push Device ,vendor tree, and proprietary files
       run: |
         cd $PROJECTFOLDER
