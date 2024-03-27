@@ -218,7 +218,7 @@ jobs:
         lunch lineage_a03s-eng && \
         make installclean && \
         ${{ github.event.inputs.BUILD_COMMAND }} && \
-        make dist" 
+        mka dist" 
 
     # Only reach this wheter the user killed the workflow.
     - name: Execute if the job is cancelled
@@ -249,6 +249,12 @@ jobs:
         #PROJECTFOLDER: ${PROJECTFOLDER}
 
     # Upload build_error log
+    - name: Pull build_error log
+      if: ${{ failure() }}
+      run: |
+        cd $PROJECTFOLDER
+        crave pull out/build_error 
+
     - name: Upload build_error log
       if: ${{ failure() }}
       uses: actions/upload-artifact@v3.1.2
