@@ -161,13 +161,13 @@ jobs:
     # Create a 'crave' job for building.
     - name: Start compilation through 'crave'
       run: |
-      cd $PROJECTFOLDER
-      if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
-      then
-        crave run --no-patch --clean "${{ github.event.inputs.REMOVALS }}"
-      else
-        crave run --no-patch "${{ github.event.inputs.REMOVALS }}"
-      fi
+        cd $PROJECTFOLDER
+        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
+        then
+          crave run --no-patch --clean "${{ github.event.inputs.REMOVALS }}"
+        else
+          crave run --no-patch "${{ github.event.inputs.REMOVALS }}"
+        fi
 
         crave run --no-patch "
         /opt/crave/resync.sh && \
