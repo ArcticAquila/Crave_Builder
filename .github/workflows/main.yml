@@ -14,6 +14,7 @@ on:
       REMOVALS:
         description: "Folders to be removed before syncing:"
         required: false
+        default: "./device/samsung/a03s ./vendor/samsung/a03s ./hardware/mediatek ./device/mediatek/sepolicy_vndr"
       BUILD_COMMAND:
         description: 'Command to be used for compiling:'
         required: true
@@ -136,66 +137,57 @@ jobs:
         git clone git@github.com:ArcticAquila/android_device_samsung_a03s.git -b main ./device/samsung/a03s
 
     # Clone specified vendor tree
-    - name: Clone vendor tree
-      run: |
-        cd $PROJECTFOLDER
-        git clone git@github.com:ArcticAquila/android_device_samsung_a03s.git -b main ./vendor/samsung/a03s
+    #- name: Clone vendor tree
+      #run: |
+        #cd $PROJECTFOLDER
+        #git clone git@github.com:ArcticAquila/android_device_samsung_a03s.git -b main ./vendor/samsung/a03s
 
     - name: Change to Lineage
       run: | 
         cd $PROJECTFOLDER/device/samsung/a03s
         bash tools/change-version.sh lineage
 
+    - name: Prepare proprietary files
+      run: |
+        pip install gdown
+        gdown "https://drive.usercontent.google.com/download?id=1PL2Zi6S9ubMT9n5X0xqjUm2je7UuOuqY&export=download&authuser=0"
+        mv pro.tar.gz device/samsung/a03s/
+
+    - name: Push Device ,vendor tree, and proprietary files
+      run: |
+        crave push device/samsung/a03s -d device/samsung/a03s
+      #crave push vendor/samsung/a03s -d vendor/samsung/a03s
+
     # Create a 'crave' job for building.
     - name: Start compilation through 'crave'
       run: |
-        cd $PROJECTFOLDER
+      cd $PROJECTFOLDER
+      if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
+      then
+        crave run --no-patch --clean "${{ github.event.inputs.REMOVALS }}"
+      else
+        crave run --no-patch "${{ github.event.inputs.REMOVALS }}"
+      fi
 
-        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
-        then
-          crave run --no-patch --clean "rm -rf .repo/local_manifests/ ${{ github.event.inputs.REMOVALS }}
-        else
-          crave run --no-patch "rm -rf .repo/local_manifests/ ${{ github.event.inputs.REMOVALS }} 
-        fi
+        crave run --no-patch "
+        /opt/crave/resync.sh && \
 
-        # Sync the repositories
-        /opt/crave/resync.sh
+        git clone https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr device/mediatek/sepolicy_vndr && \
+        git clone https://github.com/LineageOS/android_hardware_mediatek hardware/mediatek && \
 
-        git clone https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr device/mediatek/sepolicy_vndr
-        git clone https://github.com/LineageOS/android_hardware_mediatek hardware/mediatek
+        export BUILD_USERNAME=${{ github.actor }} && \
+        export BUILD_HOSTNAME=crave && \
+        source build/envsetup.sh && \
 
-        # Set up build environment
-        export BUILD_USERNAME=${{ github.actor }}
-        export BUILD_HOSTNAME=crave
-        source build/envsetup.sh 
-
-        # Build the ROM
-        
-        cd device/samsung/a03s
-        bash tools/change-version.sh lineage
-        croot
-        cd system/core
-        git apply ../../device/samsung/a03s/tools/fatal_to_recovery.patch
-        croot
-        lunch lineage_a03s-eng
-        make installclean
-        ${{ github.event.inputs.BUILD_COMMAND }}"
-
-    ## DISABLED
-    #- name: Extract sign key
-     # env:
-     #   CERTIFICATE_BASE64: ${{ secrets.FILE_BASE64 }}
-      #run: |
-      #  mkdir $PROJECTFOLDER/device/samsung/a03s/tmp
-      #  cd $PROJECTFOLDER/device/samsung/a03s/tmp
-      #  echo $CERTIFICATE_BASE64 | base64 --decode > android-certs.zip.gpg
-      #  gpg --quiet --batch --yes --decrypt --passphrase="$GPG_PASSWORD" --output android-certs.zip android-certs.zip.gpg
-      #  unzip -P $ZIP_PASSWORD android-certs.zip
-
-    #- name: Sign build
-     # run: |
-      #  cd $PROJECTFOLDER
-
+        cd device/samsung/a03s && \
+        bash tools/change-version.sh lineage && \
+        croot && \
+        cd system/core && \
+        git apply ../../device/samsung/a03s/tools/fatal_to_recovery.patch && \
+        croot && \
+        lunch lineage_a03s-eng && \
+        make installclean && \
+        ${{ github.event.inputs.BUILD_COMMAND }}" 
 
     # Only reach this wheter the user killed the workflow.
     - name: Execute if the job is cancelled
@@ -210,23 +202,25 @@ jobs:
         cd $PROJECTFOLDER
         crave ssh -- sleep 1
         crave pull out/target/product/*/*.zip
-        crave pull out/target/product/*/*.img
 
-    # Directly upload to releases.
-    - name: Upload to repository's releases page
-      uses: softprops/action-gh-release@v1
+    ## Directly upload to releases.
+    #- name: Upload to repository's releases page
+      #uses: softprops/action-gh-release@v1
+      #with:
+        #files: |
+          #${{ env.PROJECTFOLDER }}/${{ github.event.inputs.DEVICE_NAME }}/*.zip
+        #name: ${{ github.event.inputs.PRODUCT_NAME }}-${{ github.run_id }}
+        #tag_name: ${{ github.run_id }}
+        #body: |
+          #Target: ${{ github.event.inputs.PRODUCT_NAME }}-${{ github.event.inputs.BUILD_TYPE }}
+      #env:
+        #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #PROJECTFOLDER: ${PROJECTFOLDER}
+
+    # Upload build_error log
+    - name: Upload build_error log
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3.1.2
       with:
-        files: |
-          ${{ env.PROJECTFOLDER }}/${{ github.event.inputs.DEVICE_NAME }}/recovery.img
-          ${{ env.PROJECTFOLDER }}/${{ github.event.inputs.DEVICE_NAME }}/boot.img
-          ${{ env.PROJECTFOLDER }}/${{ github.event.inputs.DEVICE_NAME }}/vendor_boot.img
-          ${{ env.PROJECTFOLDER }}/${{ github.event.inputs.DEVICE_NAME }}/vendor.img
-          ${{ env.PROJECTFOLDER }}/${{ github.event.inputs.DEVICE_NAME }}/system.img
-          ${{ env.PROJECTFOLDER }}/${{ github.event.inputs.DEVICE_NAME }}/*.zip
-        name: ${{ github.event.inputs.PRODUCT_NAME }}-${{ github.run_id }}
-        tag_name: ${{ github.run_id }}
-        body: |
-          Target: ${{ github.event.inputs.PRODUCT_NAME }}-${{ github.event.inputs.BUILD_TYPE }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PROJECTFOLDER: ${PROJECTFOLDER}
+        name: Build Error Log
+        path: ${{ env.PROJECTFOLDER }}/out/build_error
