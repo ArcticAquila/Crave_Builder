@@ -149,6 +149,7 @@ jobs:
 
     - name: Prepare proprietary files
       run: |
+        cd $PROJECTFOLDER
         pip install gdown
         gdown "1PL2Zi6S9ubMT9n5X0xqjUm2je7UuOuqY&confirm=t"
         mv pro.tar.gz device/samsung/a03s/
@@ -191,7 +192,8 @@ jobs:
         croot && \
         lunch lineage_a03s-eng && \
         make installclean && \
-        ${{ github.event.inputs.BUILD_COMMAND }}" 
+        ${{ github.event.inputs.BUILD_COMMAND }} && \
+        make dist" 
 
     # Only reach this wheter the user killed the workflow.
     - name: Execute if the job is cancelled
