@@ -150,11 +150,21 @@ jobs:
     - name: Prepare proprietary files
       run: |
         pip install gdown
-        gdown "https://drive.usercontent.google.com/download?id=1PL2Zi6S9ubMT9n5X0xqjUm2je7UuOuqY&export=download&authuser=0"
+        gdown "1PL2Zi6S9ubMT9n5X0xqjUm2je7UuOuqY&confirm=t"
         mv pro.tar.gz device/samsung/a03s/
 
+    - name: Cleaning environment
+      run: |
+        cd $PROJECTFOLDER
+        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
+          then
+            crave run --no-patch --clean "${{ github.event.inputs.REMOVALS }}"
+          else
+            crave run --no-patch "${{ github.event.inputs.REMOVALS }}"
+        fi
     - name: Push Device ,vendor tree, and proprietary files
       run: |
+        cd $PROJECTFOLDER
         crave push device/samsung/a03s -d device/samsung/a03s
       #crave push vendor/samsung/a03s -d vendor/samsung/a03s
 
@@ -162,12 +172,6 @@ jobs:
     - name: Start compilation through 'crave'
       run: |
         cd $PROJECTFOLDER
-        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
-        then
-          crave run --no-patch --clean "${{ github.event.inputs.REMOVALS }}"
-        else
-          crave run --no-patch "${{ github.event.inputs.REMOVALS }}"
-        fi
 
         crave run --no-patch "
         /opt/crave/resync.sh && \
