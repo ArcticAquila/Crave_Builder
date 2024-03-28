@@ -22,7 +22,7 @@ on:
       BUILD_COMMAND:
         description: 'Command to be used for compiling:'
         required: true
-        default: 'mka bacon -j$(nproc --all)'
+        default: 'mka bacon'
       BUILD_TYPE:
         description: 'Type of build:'
         required: true
@@ -183,17 +183,6 @@ jobs:
         gdown "1PL2Zi6S9ubMT9n5X0xqjUm2je7UuOuqY&confirm=t"
         mv pro.tar.gz device/samsung/a03s/
 
-    - name: Cleaning environment
-      if: ${{ github.event.inputs.CLEAN_ARGS == 'true' }}
-      run: |
-        cd $PROJECTFOLDER
-        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; 
-          then
-            crave run --no-patch --clean "${{ github.event.inputs.REMOVALS }}"
-          else
-            crave run --no-patch "${{ github.event.inputs.REMOVALS }}"
-        fi
-
     - name: Push Device ,vendor tree, and proprietary files
       run: |
         cd $PROJECTFOLDER
@@ -204,8 +193,11 @@ jobs:
     - name: Start compilation through 'crave'
       run: |
         cd $PROJECTFOLDER
-
-        crave run --no-patch -- "/opt/crave/resync.sh 
+        if [ "${{ github.event.inputs.CLEAN_BUILD }}" == "yes" ]; then
+           export CLEAN="--clean"
+        fi
+        crave run --no-patch ${CLEAN} -- "rm -rf ${{ github.event.inputs.REMOVALS }} || true
+        /opt/crave/resync.sh 
 
         git clone https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr device/mediatek/sepolicy_vndr 
         git clone https://github.com/LineageOS/android_hardware_mediatek hardware/mediatek 
