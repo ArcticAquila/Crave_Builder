@@ -186,7 +186,7 @@ jobs:
     - name: Push Device ,vendor tree, and proprietary files
       run: |
         cd $PROJECTFOLDER
-        crave push device -d $(crave ssh -- pwd | grep -v Select | sed -s 's/\r//g')/
+        crave push device/samsung/a03s -d /tmp/src/android/samsung/a03s
       #crave push vendor/samsung/a03s -d vendor/samsung/a03s
 
     # Create a 'crave' job for building.
